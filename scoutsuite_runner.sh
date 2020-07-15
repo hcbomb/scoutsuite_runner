@@ -1,13 +1,14 @@
 #!/bin/bash
 SCOUTSUITE=/opt/scoutsuite
-LOGDIR=$SCOUTSUITE/log
+RUNNER_DIR=/opt/scoutsuite_runner
 REPORT_DIR=/opt/reports.scoutsuite
+LOGDIR=$RUNNER_DIR/log
 
-GET_ORG_SCRIPT=$SCOUTSUITE/get_org_list.py
 SCOUTSUITE_SCRIPT=$SCOUTSUITE/ScoutSuite/scout.py
-PROFILE=$SCOUTSUITE/aws_profile_list.txt
+GET_ORG_SCRIPT=$RUNNER_DIR/get_org_list.py
+PROFILE=$RUNNER_DIR/aws_profile_list.txt
+PROFILE_BUILDER_SCRIPT=$RUNNER_DIR/aws_configurate.sh
 LOGFILE=$LOGDIR/collector.botorator.log
-PROFILE_BUILDER_SCRIPT=$SCOUTSUITE/aws_configurate.sh
 
 ORIG_AWS_PROFILE="Voltron_DCN"
 TIMESTAMP=`date +"%Y-%m-%d %H:%M:%S.%3N%z"`
@@ -17,6 +18,10 @@ DATESTAMP_TAG=`date +"%Y-%m-%d"`
 MAX_NPROC=10
 NUM=0
 TOTAL=0
+
+# Throttling params
+MAX_WORKERS=2
+MAX_RATE=10 # describe/list API calls per second
 
 function queue {
     QUEUE="$QUEUE $1"
@@ -83,7 +88,8 @@ for AWS_PROFILE in `cat $PROFILE`; do
         echo "$TIMESTAMP outputting to filename=$LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log aws profile: $AWS_PROFILE count: $TOTAL" >> $LOGFILE
 		echo "python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE " >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1 
 		exit
-        python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
+        python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --max-workers $MAX_WORKERS --max-rate $MAX_RATE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
+        #python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
         PID=$!
         queue $PID
 
