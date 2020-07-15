@@ -59,7 +59,7 @@ if [ ! -d $REPODIR ]; then
     mkdir -p $REPORT_DIR/$DATESTAMP_TAG
 fi
 
-source /opt/scoutsuite/venv/bin/activate
+source $SCOUTSUITE/venv/bin/activate
 echo "$TIMESTAMP creating aws account list from org..." >> $LOGFILE
 ts1=`date +%s`
 echo "executing: python3 $GET_ORG_SCRIPT -p $ORIG_AWS_PROFILE" >> $LOGFILE
