@@ -9,6 +9,7 @@ import logging.handlers as handlers
 import configparser
 import traceback
 import time
+import pytz
 
 BASEFOLDER = None
 LOGFOLDER = None
@@ -41,6 +42,7 @@ SERVICE_EV_FIELDS = {
 }
 
 logger = None
+orig_timestamp=None
 
 base_details = {}
 account_details = {}
@@ -287,6 +289,10 @@ if __name__ == "__main__":
             json_file = json.loads(json_payload)
     except Exception as e:
         logger.error(f'Failed to read ScoutSuite results: {args.results_file}. Reason: {traceback.format_exc()}')
+
+    # set original timesetamp against results file
+    tz = pytz.timezone("US/Pacific")
+    orig_timestamp = datetime.datetime.fromtimestamp(os.stat(args.results_file).st_mtime).localize(tz)
 
     for key in json_file.keys():
         if isinstance(json_file[key], dict) or isinstance(json_file[key], list):

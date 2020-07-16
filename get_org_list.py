@@ -1,5 +1,6 @@
 import argparse
 import boto3
+import re
 import csv
 import json
 import sys
@@ -385,7 +386,9 @@ def finalize_lists(filename_account_list='aws_account_list.csv', filename_accoun
 
         # write to account csv
         account_writer.writerow([
-                    account['Name'].replace(' ', '_').replace(',','_'),
+                    re.sub(r'[ _,\/]', '_', account['Name']).replace('__','_'),
+                    #re.sub(r'[ _,()]', '_', account['Name']).replace('__','_'),
+                    #account['Name'].replace(' ', '_').replace(',','_'),
                     aws_account_id, 
                     account.get('ou'),
                     temp_ou_name,
