@@ -117,10 +117,14 @@ echo -e "$TIMESTAMP ScoutSuite runner job complete. total time elapsed: $(($dura
 
 # convert all newly generated ScoutSuite report files into Splunk-friendly data events
 for REPORT in `find $REPORT_DIR -cnewer $RABBITFILE -type f -name 'scoutsuite_results_*.js'`; do
-    CNUM=$((CNUM+1))
     ORIG_REPORT_FOLDER=`dirname $REPORT`
-    echo "$TIMESTAMP converting $REPORT >> $ORIG_REPORT_FOLDER/report.scoutsuite.$AWS_PROFILE.txt" >> $LOGFILE
-    python3 $SS_CONVERTER_SCRIPT -s "$REPORT" -d "$ORIG_REPORT_FOLDER/report.scoutsuite.$AWS_PROFILE.txt"
+    # extract the aws profile name from the original results file
+    [[ "$REPORT" =~ report.scoutsuite\.(.*)\.txt ]]
+    EXTRACTED_PROFILE="${BASH_REMATCH[1]}"
+
+    echo "$TIMESTAMP converting $REPORT >> $ORIG_REPORT_FOLDER/report.scoutsuite.$EXTRACTED_PROFILE.txt" >> $LOGFILE
+    python3 $SS_CONVERTER_SCRIPT -s "$REPORT" -d "$ORIG_REPORT_FOLDER/report.scoutsuite.$EXTRACTED_PROFILE.txt"
+    CNUM=$((CNUM+1))
 done
 
 echo "$TIMESTAMP successfully converted $CNUM ScoutSuite reports" >> $LOGFILE
