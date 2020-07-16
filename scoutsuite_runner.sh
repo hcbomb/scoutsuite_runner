@@ -90,9 +90,9 @@ for AWS_PROFILE in `cat $PROFILE`; do
 
     TOTAL=$((TOTAL+1))
 # print executed scoutsuite run into debug log
-    echo "python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --max-workers $MAX_WORKERS --max-rate $MAX_RATE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE" >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
+    #echo "python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --max-workers $MAX_WORKERS --max-rate $MAX_RATE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE" >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
 
-#    python3 $SCOUTSUITE_SCRIPT aws --profile "$AWS_PROFILE" --max-workers $MAX_WORKERS --max-rate $MAX_RATE --report-dir "$REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG" --report-name "$AWS_PROFILE" -f >> "$LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log" 2>&1 &
+    python3 $SCOUTSUITE_SCRIPT aws --profile "$AWS_PROFILE" --max-workers $MAX_WORKERS --max-rate $MAX_RATE --report-dir "$REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG" --report-name "$AWS_PROFILE" -f >> "$LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log" 2>&1 &
 # no rate limiting
     #python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
     PID=$!
