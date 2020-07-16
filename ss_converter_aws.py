@@ -292,7 +292,7 @@ if __name__ == "__main__":
 
     # set original timesetamp against results file
     tz = pytz.timezone("US/Pacific")
-    orig_timestamp = datetime.datetime.fromtimestamp(os.stat(args.results_file).st_mtime).localize(tz)
+    #orig_timestamp = datetime.datetime.fromtimestamp(os.stat(args.results_file).st_mtime).localize(tz)
 
     for key in json_file.keys():
         if isinstance(json_file[key], dict) or isinstance(json_file[key], list):
