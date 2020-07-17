@@ -252,7 +252,7 @@ def _process_service_events(service_name, ev_template_service, results_service):
                 ev_ss.update(ev_template)
                 ev_ss.update(account_details[key][service][s][region]['certificates'][id])
         '''
-    pass
+
     for ev in my_ext:
         ev_id = my_ext[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
@@ -343,17 +343,18 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.error(f'Failed to process account detail type={key} Reason: {traceback.format_exc()}')
 
-        try:
-            for ev_key in account_details[key].keys():
-                events[key][ev_key] = {}
-                events[key][ev_key]['_time'] = datetime.datetime.now().strftime('%F %T%z')
-                events[key][ev_key]['type'] = key
-                events[key][ev_key]['id'] = f'{key}:{ev_key}'
-                # copy 
-                events[key][ev_key].update(ev_template)
-                events[key][ev_key].update(account_details[key][ev_key])
-        except Exception as e:
-            logger.error(f'Failed to process account detail type={key} target={ev_key} Reason: {traceback.format_exc()}')
+        else:
+            try:
+                for ev_key in account_details[key].keys():
+                    events[key][ev_key] = {}
+                    events[key][ev_key]['_time'] = datetime.datetime.now().strftime('%F %T%z')
+                    events[key][ev_key]['type'] = key
+                    events[key][ev_key]['id'] = f'{key}:{ev_key}'
+                    # copy 
+                    events[key][ev_key].update(ev_template)
+                    events[key][ev_key].update(account_details[key][ev_key])
+            except Exception as e:
+                logger.error(f'Failed to process account detail type={key} target={ev_key} Reason: {traceback.format_exc()}')
 
     try:
         # write to new file
