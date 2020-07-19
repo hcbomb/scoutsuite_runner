@@ -31,6 +31,7 @@ SERVICE_EV_FIELDS = {
 'elbv2': ['elb_policies'],
 'emr': ['clusters'],
 'iam': ['credential_reports', 'groups', 'password_policy', 'policies', 'permissions', 'roles', 'users'],
+'kms': ['keys'],
 'rds': ['instances', 'parameter_groups', 'security_groups', 'snapshots', 'subnet_groups'],
 'redshift': ['parameter_groups', 'security_groups'],
 'route53': ['domains', 'hosted_zones'],
