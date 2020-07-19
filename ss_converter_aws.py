@@ -133,7 +133,7 @@ def _process_ext_attack_surface(service_group, ev_temp, results_service_group):
     for ev in my_ext:
         ev_id = my_ext[ev].get('id')
         if events[ext_type] and (ev in events[ext_type] or ev_id in events[ext_type]):
-            logger.warning(f"event already exists: key={service_group} id={ev} orig type: {events[service_group][ev]['type']}")
+            logger.warning(f"event already exists: env: {ev_temp['environment']} key={service_group} id={ev} orig type: {events[service_group][ev]['type']}")
         events[ext_type][ev_id] = my_ext[ev]
 
 
@@ -174,12 +174,12 @@ def _process_service_events(service_name, ev_temp, results_service):
     my_inventory = {}
 
     if service_name not in SERVICE_EV_FIELDS:
-        logger.warning(f'service not currently supported or results parsing: service={service_name}')
+        logger.warning(f"service not currently supported or results parsing: env: {ev_temp['environment']} service={service_name}")
         return
 
     # iterate through service data
     for key in results_service.keys():
-        logger.debug(f'key list dump: service={service_name} keys: <{",".join(results_service.keys())}>')
+        logger.debug(f'key list dump: env: {ev_temp["environment"]} service={service_name} keys: <{",".join(results_service.keys())}>')
         # everything not iterable will added to summary event
         if not isinstance(results_service[key], dict):
             ev_summary[key] = results_service[key]
@@ -214,7 +214,7 @@ def _process_service_events(service_name, ev_temp, results_service):
                 if isinstance(service_key_iterator[vv], dict):
                     my_inventory[vv].update(service_key_iterator[vv])
                 else:
-                    logger.debug(f'service key: {vv} type: {type(service_key_iterator[vv])}')
+                    logger.debug(f'env: {ev_temp["environment"]} service key: {vv} type: {type(service_key_iterator[vv])}')
 
         # if regions, then need to breakdown even further
         # region based summary, then iterate through each region's items
@@ -249,7 +249,7 @@ def _process_service_events(service_name, ev_temp, results_service):
                     
         # any other special type of asset for the service
         else: # add inventory summary page for the region + per asset
-            logger.debug(f'UNKNOWN key: {key} type: {type(results_service[key])}')
+            logger.debug(f'UNKNOWN env: {ev_temp["environment"]} key: {key} type: {type(results_service[key])}')
             '''
             my_inventory[vv] = {}
             my_inventory[vv]['sub_type'] = key
@@ -263,13 +263,13 @@ def _process_service_events(service_name, ev_temp, results_service):
     for ev in my_filters:
         ev_id = my_filters[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
         events[service_name][ev_id] = my_filters[ev]
 
     for ev in my_findings:
         ev_id = my_findings[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
         events[service_name][ev_id] = my_findings[ev]
 
         '''
@@ -288,7 +288,7 @@ def _process_service_events(service_name, ev_temp, results_service):
     for ev in my_inventory:
         ev_id = my_inventory[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']} new type: {my_inventory[ev]['type']}")
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev} orig type: {events[service_name][ev]['type']} new type: {my_inventory[ev]['type']}")
         events[service_name][ev_id] = my_inventory[ev]
 
 
@@ -353,7 +353,7 @@ if __name__ == "__main__":
                 events[key]['id'] = f'{key}:summary'
                 continue
             except Exception as e:
-                logger.error(f'Failed to process account detail type={key} Reason: {traceback.format_exc()}')
+                logger.error(f'Failed to process account detail type={key} env="{ev_template["environment"]}"  Reason: {traceback.format_exc()}')
 
         elif key == 'services':
             ''' each service is broken down into 4 subtype categories:
@@ -369,7 +369,7 @@ if __name__ == "__main__":
 
                 continue
             except Exception as e:
-                logger.error(f'Failed to process account detail type={key} Reason: {traceback.format_exc()}')
+                logger.error(f'Failed to process account detail type={key} env="{ev_template["environment"]}" Reason: {traceback.format_exc()}')
 
         # external_attack_surface
         # account_details['service_groups']['compute']['summaries']['external_attack_surface']
@@ -390,7 +390,7 @@ if __name__ == "__main__":
                     events[key][ev_key].update(ev_template)
                     events[key][ev_key].update(account_details[key][ev_key])
             except Exception as e:
-                logger.error(f'Failed to process account detail type={key} target={ev_key} Reason: {traceback.format_exc()}')
+                logger.error(f'Failed to process account detail type={key} env="{ev_template["environment"]}" target={ev_key} Reason: {traceback.format_exc()}')
 
     try:
         # write to new file
@@ -406,7 +406,7 @@ if __name__ == "__main__":
                         json.dump(events[ev_type][ev], wf)
                         wf.write('\n')    # force newline
                 except Exception as e:
-                    logger.error(f'Failed to write results: {ev_type}. Reason: {traceback.format_exc()}')
+                    logger.error(f'Failed to write results: {ev_type}. env="{ev_template["environment"]}" Reason: {traceback.format_exc()}')
     except Exception as e:
-        logger.error(f'Failed to read ScoutSuite results: {args.json_out}. Reason: {traceback.format_exc()}')
+        logger.error(f'Failed to read ScoutSuite results: {args.json_out}. env="{ev_template["environment"]}" Reason: {traceback.format_exc()}')
 
