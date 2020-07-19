@@ -132,8 +132,8 @@ def _process_ext_attack_surface(service_group, ev_temp, results_service_group):
 
     for ev in my_ext:
         ev_id = my_ext[ev].get('id')
-        if events[ext_type] and (ev in events[ext_type] or ev_id in events[ext_type]):
-            logger.warning(f"event already exists: env: {ev_temp['environment']} key={service_group} id={ev} orig type: {events[service_group][ev]['type']}")
+        if events[ext_type] and ev_id in events[ext_type]:
+            logger.warning(f"event already exists: env: {ev_temp['environment']} key={service_group} id={ev_id} orig.type={events[service_group][ev_id]['type']}")
         events[ext_type][ev_id] = my_ext[ev]
 
 
@@ -262,14 +262,14 @@ def _process_service_events(service_name, ev_temp, results_service):
     events[service_name]['summary'] = ev_summary
     for ev in my_filters:
         ev_id = my_filters[ev].get('id')
-        if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
+        if ev_id in events[service_name]:
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev_id} orig.type={events[service_name][ev_id]['type']}")
         events[service_name][ev_id] = my_filters[ev]
 
     for ev in my_findings:
         ev_id = my_findings[ev].get('id')
-        if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
+        if ev_id in events[service_name]:
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev_id} orig.type={events[service_name][ev_id]['type']}")
         events[service_name][ev_id] = my_findings[ev]
 
         '''
@@ -288,7 +288,7 @@ def _process_service_events(service_name, ev_temp, results_service):
     for ev in my_inventory:
         ev_id = my_inventory[ev].get('id')
         if ev_id in events[service_name]:
-            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev_id} orig type: {events[service_name][ev_id]['type']} new type: {my_inventory[ev]['type']}")
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev_id} orig.type={events[service_name][ev_id]['type']} orig.sub_type={events[service_name][ev_id].get('sub_type')} new.type={my_inventory[ev]['type']} new.sub_type={my_inventory[ev].get('sub_type')}")
         events[service_name][ev_id] = my_inventory[ev]
 
 
