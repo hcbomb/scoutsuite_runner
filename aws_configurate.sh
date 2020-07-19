@@ -4,7 +4,8 @@ TIMESTAMP=`date +"%Y-%m-%d %H:%M:%S.%3N%z"`
 
 it_only=true
 ignore_cloud=true
-ignore_special=true
+ignore_special=false
+#ignore_special=true
 temp_file=aws_profile_list.txt
 role=okta_ro_role
 my_csv=aws_account_list.csv
