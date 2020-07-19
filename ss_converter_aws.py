@@ -36,6 +36,7 @@ SERVICE_EV_FIELDS = {
 'redshift': ['parameter_groups', 'security_groups'],
 'route53': ['domains', 'hosted_zones'],
 's3': ['buckets'],
+'secretsmanager': ['secrets'],
 'ses': ['identities'],
 'sns': ['topics'],
 'sqs': ['queues'],
@@ -171,6 +172,10 @@ def _process_service_events(service_name, ev_temp, results_service):
     my_filters = {}
     my_findings = {}
     my_inventory = {}
+
+    if service_name not in SERVICE_EV_FIELDS:
+        logger.warning(f'service not currently supported or results parsing: service={service_name}')
+        return
 
     # iterate through service data
     for key in results_service.keys():
