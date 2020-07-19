@@ -287,8 +287,8 @@ def _process_service_events(service_name, ev_temp, results_service):
 
     for ev in my_inventory:
         ev_id = my_inventory[ev].get('id')
-        if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev} orig type: {events[service_name][ev]['type']} new type: {my_inventory[ev]['type']}")
+        if ev_id in events[service_name]:
+            logger.warning(f"event already exists: env: {ev_temp['environment']} service={service_name} id={ev_id} orig type: {events[service_name][ev_id]['type']} new type: {my_inventory[ev]['type']}")
         events[service_name][ev_id] = my_inventory[ev]
 
 
