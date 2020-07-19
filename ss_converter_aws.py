@@ -97,19 +97,56 @@ def prepare_logging():
     logger = GetLogger(LOGFILE_PATH, __file__)    
 
 
-def _process_service_events(service_name, ev_template_service, results_service):
+def _process_ext_attack_surface(service_group, ev_temp, results_service_group):
+    ''' 
+            need to process the results for the aws service into 4 different types:
+            * summary - includes all static summary information for the aws account
+            * external_attack_surface - any identified vulnerable ext attack surface
+
+            :param service_name:    name of aws service
+            :type service_name:             str
+            :param ev_temp:     template to copy event info from
+            :type ev_temp:      dict
+            :param results_service_group: collection of service results to extract
+            :type results_service_group:  dict
+    '''
+
+    global events
+    ev_temp['_time'] = datetime.datetime.now().strftime('%F %T%z')
+    ev_temp['service'] = service_group
+    ev_ext = copy.deepcopy(ev_temp)
+    ext_type = ev_ext['type'] = 'external_attack_surface'
+
+    my_ext = {}
+
+    for vv in results_service_group['summaries'][ext_type]:
+        my_ext[vv] = {}
+        my_ext[vv]['id'] = f"{service_group}:{ext_type}:{vv}"
+        my_ext[vv].update(ev_ext)
+        my_ext[vv].update(results_service_group['summaries'][ext_type][vv])
+
+    if ext_type not in events:
+        events[ext_type] = {}
+
+    for ev in my_ext:
+        ev_id = my_ext[ev].get('id')
+        if events[ext_type] and (ev in events[ext_type] or ev_id in events[ext_type]):
+            logger.warning(f"event already exists: key={service_group} id={ev} orig type: {events[service_group][ev]['type']}")
+        events[ext_type][ev_id] = my_ext[ev]
+
+
+def _process_service_events(service_name, ev_temp, results_service):
     ''' 
             need to process the results for the aws service into 4 different types:
             * summary - includes all static summary information for the aws account
             * filters - any pre-configured filters from the scan
             * findings - any identified vulnerable configurations
-            * external_attack_surface - any identified vulnerable ext attack surface
             * inventory - based on service, capture per service artifact + summary
 
             :param service_name:    name of aws service
             :type service_name:             str
-            :param ev_template_service:     template to copy event info from
-            :type ev_template_service:      dict
+            :param ev_temp:     template to copy event info from
+            :type ev_temp:      dict
             :param results_service: collection of service results to extract
             :type results_service:  dict
     '''
@@ -117,25 +154,21 @@ def _process_service_events(service_name, ev_template_service, results_service):
     global events
 
     # template for service events
-    ev_temp = copy.deepcopy(ev_template_service)
     ev_temp['_time'] = datetime.datetime.now().strftime('%F %T%z')
     ev_temp['service'] = service_name
 
     ev_summary = copy.deepcopy(ev_temp)
     ev_summary['type'] = 'summary'
-    ev_summary['id'] = f'{service_name}:summary'
+    ev_summary['id'] = f'summary:{service_name}'
     ev_filters = copy.deepcopy(ev_temp)
     ev_filters['type'] = 'filters'
     ev_findings = copy.deepcopy(ev_temp)
     ev_findings['type'] = 'findings'
-    ev_ext = copy.deepcopy(ev_temp)
-    ev_ext['type'] = 'external_attack_surface'
     ev_inventory = copy.deepcopy(ev_temp)
     ev_inventory['type'] = 'inventory'
 
     my_filters = {}
     my_findings = {}
-    my_ext = {}
     my_inventory = {}
 
     # iterate through service data
@@ -156,15 +189,8 @@ def _process_service_events(service_name, ev_template_service, results_service):
             for vv in results_service[key]:
                 my_findings[vv] = {}
                 my_findings[vv]['id'] = f'{key}:{vv}'
-                my_findings[vv].update(ev_filters)
+                my_findings[vv].update(ev_findings)
                 my_findings[vv].update(results_service[key][vv])
-
-        elif key == 'external_attack_surface':
-            for vv in results_service[key]:
-                my_ext[vv] = {}
-                my_ext[vv]['id'] = f'{key}:{vv}'
-                my_ext[vv].update(ev_ext)
-                my_ext[vv].update(results_service[key][vv])     
 
         # need to iterate if among specified service events
         elif key in SERVICE_EV_FIELDS[service_name]:
@@ -232,13 +258,13 @@ def _process_service_events(service_name, ev_template_service, results_service):
         ev_id = my_filters[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
             logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
-        events[service_name][ev] = my_filters[ev]
+        events[service_name][ev_id] = my_filters[ev]
 
     for ev in my_findings:
         ev_id = my_findings[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
             logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
-        events[service_name][ev] = my_findings[ev]
+        events[service_name][ev_id] = my_findings[ev]
 
         '''
         for region in account_details[key][service][s].keys():
@@ -253,17 +279,11 @@ def _process_service_events(service_name, ev_template_service, results_service):
                 ev_ss.update(account_details[key][service][s][region]['certificates'][id])
         '''
 
-    for ev in my_ext:
-        ev_id = my_ext[ev].get('id')
-        if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
-        events[service_name][ev] = my_ext[ev]
-
     for ev in my_inventory:
         ev_id = my_inventory[ev].get('id')
         if ev in events[service_name] or ev_id in events[service_name]:
-            logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']}")
-        events[service_name][ev] = my_inventory[ev]
+            logger.warning(f"event already exists: service={service_name} id={ev} orig type: {events[service_name][ev]['type']} new type: {my_inventory[ev]['type']}")
+        events[service_name][ev_id] = my_inventory[ev]
 
 
 if __name__ == "__main__":
@@ -315,10 +335,11 @@ if __name__ == "__main__":
     # service list is general and has no detail from aws account
     del(account_details['service_list'])
 
+    # ['last_run', 'metadata', 'service_groups', 'services', 'sg_map', 'subnet_map']
     for key in account_details.keys():
-        events[key] = {}
-        #
+
         if key == 'last_run':
+            events[key] = {}
             try:
                 events[key].update(account_details[key])
                 events[key]['_time'] = datetime.datetime.now().strftime('%F %T%z')
@@ -335,6 +356,7 @@ if __name__ == "__main__":
                 * findings for any triggers
                 * inventory configuration per service 
             '''
+
             try:
                 for service_name in account_details['services'].keys():
                     _process_service_events(service_name, ev_template, account_details['services'][service_name])
@@ -343,7 +365,15 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.error(f'Failed to process account detail type={key} Reason: {traceback.format_exc()}')
 
+        # external_attack_surface
+        # account_details['service_groups']['compute']['summaries']['external_attack_surface']
+        # account_details['service_groups']['database']['summaries']['external_attack_surface']
+        elif key == 'service_groups':
+            for service_group in account_details[key].keys():
+                 _process_ext_attack_surface(service_group, ev_template, account_details[key][service_group])
+
         else:
+            events[key] = {}
             try:
                 for ev_key in account_details[key].keys():
                     events[key][ev_key] = {}
