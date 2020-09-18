@@ -2,20 +2,32 @@
 
 TIMESTAMP=`date +"%Y-%m-%d %H:%M:%S.%3N%z"`
 
-it_only=true
-ignore_cloud=true
+it_only=false
+ignore_cloud=true # default
 ignore_special=false
 #ignore_special=true
 temp_file=aws_profile_list.txt
 role=okta_ro_role
 my_csv=aws_account_list.csv
 
+
+function parse_args {
+    # only argument supported right now is cloud only. 
+    if [[ "${1}" == "true" ]]; then
+        ignore_cloud=false
+    fi
+}
+
+parse_args $@
 echo "" > $temp_file
 
 IFS=,
 printf "$TIMESTAMP skip flags: it_only: %s ignore_cloud: %s ignore_special: %s\n" $it_only $ignore_cloud $ignore_special
 while read -r aws_profile_name aws_account_id ou ou_name status
 do
+    # lower case
+    aws_profile_name_lc=$(echo $aws_profile_name | tr '[:upper:]' '[:lower:]')
+
     if [[ "$it_only" = true && "$ou_name" != "itops" ]]; then
         printf "$TIMESTAMP skipping NON-IT OPS account: %s %s\n" $aws_profile_name
         continue
@@ -24,7 +36,8 @@ do
         printf "$TIMESTAMP skipping NON-ACTIVE account: %s %s\n" $aws_profile_name $ou_name
         continue
 
-    elif [[ "$ignore_cloud" = true && ( "$ou_name" == *no_policy* || "$ou_name" == "unmanaged" ) ]]; then
+    elif [[ "$ignore_cloud" = true && ( "$aws_profile_name_lc" == *cloud* || "$ou_name" == *cloud* ) ]]; then
+    #elif [[ "$ignore_cloud" = true && ( "$ou_name" == *no_policy* || "$ou_name" == "unmanaged" ) ]]; then
         printf "$TIMESTAMP skipping CLOUD account: %s ou: %s status: %s \n" $aws_profile_name $ou_name $status
         continue
 

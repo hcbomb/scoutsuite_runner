@@ -24,7 +24,7 @@ CNUM=0
 
 # Throttling params
 MAX_WORKERS=2
-MAX_RATE=10 # describe/list API calls per second
+MAX_RATE=5 # describe/list API calls per second
 
 function queue {
     QUEUE="$QUEUE $1"
