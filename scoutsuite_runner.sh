@@ -12,6 +12,7 @@ PROFILE_BUILDER_SCRIPT=$RUNNER_DIR/aws_configurate.sh
 LOGFILE=$LOGDIR/collector.scoutsuite_runner.log
 RABBITFILE=$RUNNER_DIR/rabbit.txt # used to easily track newly generated Scoutsuite report files
 
+PROC_NAME="scoutsuite_runner"
 ORIG_AWS_PROFILE="Voltron_DCN"
 TIMESTAMP=`date +"%Y-%m-%d %H:%M:%S.%3N%z"`
 TIMESTAMP_TAG=`date +"%Y-%m-%d.%H_%M_%S.%3N%z"`
@@ -66,27 +67,27 @@ fi
 touch $RABBITFILE
 
 source $SCOUTSUITE/venv/bin/activate
-echo "$TIMESTAMP creating aws account list from org..." >> $LOGFILE
+echo "$TIMESTAMP $PROC_NAME: creating aws account list from org..." >> $LOGFILE
 ts1=`date +%s`
 echo "executing: python3 $GET_ORG_SCRIPT -p $ORIG_AWS_PROFILE" >> $LOGFILE
 python3 $GET_ORG_SCRIPT -p $ORIG_AWS_PROFILE >> $LOGFILE
 te1=`date +%s`
 duration=$((te1 - ts1))
 
-echo "$TIMESTAMP aws account list created, proceeding to build aws config. elapsed: $(($duration / 60)) min and $(($duration % 60)) sec" >> $LOGFILE
+echo "$TIMESTAMP $PROC_NAME: aws account list created, proceeding to build aws config. elapsed: $(($duration / 60)) min and $(($duration % 60)) sec" >> $LOGFILE
 
 ts1=`date +%s`
 bash $PROFILE_BUILDER_SCRIPT >> $LOGFILE
 te1=`date +%s`
 duration=$((te1 - ts1))
 
-echo "$TIMESTAMP aws config, proceeding to run botorator scoutsuite rate limiter. elapsed: $(($duration / 60)) min and $(($duration % 60)) sec" >> $LOGFILE
+echo "$TIMESTAMP $PROC_NAME: aws config, proceeding to run botorator scoutsuite rate limiter. elapsed: $(($duration / 60)) min and $(($duration % 60)) sec" >> $LOGFILE
 
 ts2=`date +%s`
 #PROFILE=$RUNNER_DIR/test_it.aws.profile.txt
 echo "profile path: $PROFILE"
 for AWS_PROFILE in `cat $PROFILE`; do
-    echo "$TIMESTAMP processing AWS_PROFILE=$AWS_PROFILE" >> $LOGFILE
+    echo "$TIMESTAMP $PROC_NAME: processing AWS_PROFILE=$AWS_PROFILE" >> $LOGFILE
 
     TOTAL=$((TOTAL+1))
 # print executed scoutsuite run into debug log
@@ -97,7 +98,7 @@ for AWS_PROFILE in `cat $PROFILE`; do
     #python3 $SCOUTSUITE_SCRIPT aws --profile $AWS_PROFILE --report-dir $REPORT_DIR/$DATESTAMP_TAG/$AWS_PROFILE.$TIMESTAMP_TAG --report-name $AWS_PROFILE >> $LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log 2>&1
     PID=$!
     if [[ ! -z "$PID" ]]; then
-        echo "$TIMESTAMP outputting to filename=$LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log aws profile: $AWS_PROFILE count: $TOTAL pid: $PID" >> $LOGFILE
+        echo "$TIMESTAMP $PROC_NAME: outputting to filename=$LOGDIR/$DATESTAMP_TAG/scoutsuite.$AWS_PROFILE.$TIMESTAMP_TAG.log aws profile: $AWS_PROFILE count: $TOTAL pid: $PID" >> $LOGFILE
         queue $PID
 
         while [ $NUM -ge $MAX_NPROC ]; do
@@ -106,26 +107,26 @@ for AWS_PROFILE in `cat $PROFILE`; do
         done
     fi
 
-    echo "$TIMESTAMP processing scanning AWS_PROFILE=$AWS_PROFILE" >> $LOGFILE
+    echo "$TIMESTAMP $PROC_NAME: processing scanning AWS_PROFILE=$AWS_PROFILE" >> $LOGFILE
 
 done
 
 te2=`date +%s`
 duration=$((te2 - ts2))
 duration2=$((te2 - ts1))
-echo -e "$TIMESTAMP ScoutSuite runner job complete. total time elapsed: $(($duration / 60))  min and $(($duration % 60)) sec\t$(($duration2 / 60))  min and $(($duration2 % 60)) sec" >> $LOGFILE
+echo -e "$TIMESTAMP $PROC_NAME: ScoutSuite runner job complete. total time elapsed: $(($duration / 60))  min and $(($duration % 60)) sec\t$(($duration2 / 60))  min and $(($duration2 % 60)) sec" >> $LOGFILE
 
 # convert all newly generated ScoutSuite report files into Splunk-friendly data events
 for REPORT in `find $REPORT_DIR -cnewer $RABBITFILE -type f -name 'scoutsuite_results_*.js'`; do
     ORIG_REPORT_FOLDER=`dirname $REPORT`
     # extract the aws profile name from the original results file
-    [[ "$REPORT" =~ report.scoutsuite\.(.*)\.txt ]]
+    [[ "$REPORT" =~ scoutsuite_results_(.*)\.js ]]
     EXTRACTED_PROFILE="${BASH_REMATCH[1]}"
 
-    echo "$TIMESTAMP converting $REPORT >> $ORIG_REPORT_FOLDER/report.scoutsuite.$EXTRACTED_PROFILE.txt" >> $LOGFILE
+    echo "$TIMESTAMP $PROC_NAME: converting $REPORT >> $ORIG_REPORT_FOLDER/report.scoutsuite.$EXTRACTED_PROFILE.txt" >> $LOGFILE
     python3 $SS_CONVERTER_SCRIPT -s "$REPORT" -d "$ORIG_REPORT_FOLDER/report.scoutsuite.$EXTRACTED_PROFILE.txt"
     CNUM=$((CNUM+1))
 done
 
-echo "$TIMESTAMP successfully converted $CNUM ScoutSuite reports" >> $LOGFILE
+echo "$TIMESTAMP $PROC_NAME: successfully converted $CNUM ScoutSuite reports" >> $LOGFILE
 

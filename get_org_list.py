@@ -24,6 +24,10 @@ master_ou = {}
 time_start = datetime.datetime.now()
 
 
+def get_timestamp():
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S.%f%z')
+
+
 def run_setup():
     global client
 
@@ -59,7 +63,7 @@ def copy_list(account, ou=None):
     '''
     account_id = account['Id']
     if account_id in master_account:
-        print(f'account {account_id} already in master list')
+        print(f'{get_timestamp()} account {account_id} already in master list')
     else:
         master_account[account_id] = {}
 
@@ -99,7 +103,7 @@ def append_ou_policies(ou_id, policy_type, next_token=None, last_check=None):
 
             if run_diff < 1:
                 delta = round(1 - run_diff, 6)
-                print(f'sleeping for: {delta} seconds')
+                print(f'{get_timestamp()} sleeping for: {delta} seconds')
                 time.sleep(delta)
 
             response = client.list_policies_for_target(NextToken=next_token, MaxResults=max_results)
@@ -107,19 +111,19 @@ def append_ou_policies(ou_id, policy_type, next_token=None, last_check=None):
             last_check = time_check
     except Exception as e:
         if type(e).__name__ == "TooManyRequestsException":
-            print(f'force sleeping for: {backoff} second')
+            print(f'{get_timestamp()} force sleeping for: {backoff} second')
             time.sleep(backoff)
             backoff += backoff
             # retry
             append_ou_policies(ou_id, policy_type, next_token, time_check)
         else:
-            print(f'print traceback: \n{traceback.format_exc()}')
+            print(f'{get_timestamp()} print traceback: \n{traceback.format_exc()}')
             sys.exit(1)
 
     resp_code = response['ResponseMetadata'].get('HTTPStatusCode')
 
     if resp_code != 200:
-        print('que?')
+        print(f'{get_timestamp()} response error: {resp_code}')
         time.sleep(1)
 
     next_token = response.get('NextToken')
@@ -150,7 +154,7 @@ def copy_ou(ou, parent_id=None):
     '''
     ou_id = ou['Id']
     if ou_id in master_ou:
-        print(f'ou {ou_id} already in master list')
+        print(f'{get_timestamp()} ou {ou_id} already in master list')
     else:
         master_ou[ou_id] = {}
 
@@ -202,7 +206,7 @@ def append_ou_info(account_id, ou_reference=None):
     # append ou information to account
     if ou_reference:
         if ou and ou != ou_reference:
-            print(f'account ou validation check: orig ou={ou} new ou={ou_reference}')
+            print(f'{get_timestamp()} account ou validation check: orig ou={ou} new ou={ou_reference}')
         account['ou'] = ou_reference
 
         ou_info = master_ou[ou_reference]
@@ -239,16 +243,16 @@ def process_accounts(parent_id, next_token=None, idx=0, count=0, last_check=0):
 
             if run_diff < 1:
                 delta = round(1 - run_diff, 6)
-                print(f'sleeping for: {delta} seconds')
+                print(f'{get_timestamp()} sleeping for: {delta} seconds')
                 time.sleep(delta)
 
             response = client.list_accounts_for_parent(ParentId=parent_id, NextToken=next_token, MaxResults=max_results)
 
             last_check = time_check
     except Exception as e:
-        print(f'printing traceback: \n{traceback.format_exc()}')
+        print(f'{get_timestamp()} printing traceback: \n{traceback.format_exc()}')
         if type(e).__name__ == "TooManyRequestsException":
-            print(f'force sleeping for: {backoff} second')
+            print(f'{get_timestamp()} force sleeping for: {backoff} second')
             time.sleep(backoff)
             backoff += backoff
             return
@@ -262,7 +266,7 @@ def process_accounts(parent_id, next_token=None, idx=0, count=0, last_check=0):
     resp_code = response['ResponseMetadata'].get('HTTPStatusCode')
 
     if resp_code != 200:
-        print('que?')
+        print(f'{get_timestamp()} response error: {resp_code}')
         time.sleep(1)
 
     next_token = response.get('NextToken')
@@ -345,7 +349,7 @@ def process_org_units(parent_id, next_token=None, idx=0):
     resp_code = response['ResponseMetadata'].get('HTTPStatusCode')
 
     if resp_code != 200:
-        print('que?')
+        print(f'{get_timestamp()} response error: {resp_code}')
         time.sleep(1)
 
     next_token = response.get('NextToken')
@@ -453,7 +457,7 @@ if __name__ == "__main__":
         resp_code = response['ResponseMetadata'].get('HTTPStatusCode')
 
         if resp_code != 200:
-            print('que?')
+            print(f'{get_timestamp()} response error: {resp_code}')
 
         next_token = response.get('NextToken')
 
@@ -465,8 +469,8 @@ if __name__ == "__main__":
             break
         list_iter += 1
 
-    print(f'completed collecting aws accounts from root. count={len(master_account)}')
-    print(f'begin collecting org units from root.')
+    print(f'{get_timestamp()} completed collecting aws accounts from root. count={len(master_account)}')
+    print(f'{get_timestamp()} begin collecting org units from root.')
 
     resp_roots = client.list_roots()
     for root in resp_roots['Roots']:
@@ -477,7 +481,7 @@ if __name__ == "__main__":
         process_accounts(parent_id)     
         process_org_units(parent_id)
 
-    print(f'completed collecting org units from root. count={len(master_ou)}')
+    print(f'{get_timestamp()} completed collecting org units from root. count={len(master_ou)}')
 
     '''
     from pprint import pprint as pp
@@ -512,5 +516,5 @@ if __name__ == "__main__":
     finalize_lists()
 
     time_end = datetime.datetime.now()
-    print(f'completed org collector script. duration: {time_end-time_start}')
+    print(f'{get_timestamp()} completed org collector script. duration: {time_end-time_start}')
 
