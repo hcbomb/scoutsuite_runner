@@ -67,6 +67,9 @@ def copy_list(account, ou=None):
     else:
         master_account[account_id] = {}
 
+    # add timestamp
+    master_account[account_id]['_time'] = f'{datetime.datetime.utcnow().strftime("%F %H:%M:%S.%f %Z")} UTC'
+
     for key in account.keys():
         if key == 'JoinedTimestamp':
             master_account[account_id]['time_joined'] = account['JoinedTimestamp'].strftime('%F %T%z')
@@ -75,7 +78,6 @@ def copy_list(account, ou=None):
             master_account[account_id][key] = account[key]
 
     master_account[account_id]['org_id'] = account['Arn'].split('/')[1]
-
 
 def append_ou_policies(ou_id, policy_type, next_token=None, last_check=None):
     '''

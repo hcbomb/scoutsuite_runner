@@ -24,6 +24,7 @@ echo "$TIMESTAMP $PROC_NAME: begin checking for missing converted scoutsuite rep
 
 ts1=`date +%s`
 
+#echo "echo find: find $REPORT_DIR/$REPORT_BASE -mindepth 1 -maxdepth 1 -mtime +1 -type d "
 # archive old folders; skip date folder
 for FOLDER in `find $REPORT_DIR/$REPORT_BASE -mindepth 1 -maxdepth 1 -mtime +1 -type d `; do
 

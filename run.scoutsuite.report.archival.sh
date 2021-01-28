@@ -5,7 +5,7 @@ REPORT_DIR=/opt/reports.scoutsuite
 LOGDIR=$RUNNER_DIR/log
 
 LIMIT_ARCHIVE=10
-LIMIT_DELETE=30
+LIMIT_DELETE=14
 REPORT_BASE=20*-*
 PREFIX_ARCHIVE=archive.scoutsuite
 LOGFILE=$LOGDIR/collector.scoutsuite_runner.log
@@ -55,12 +55,37 @@ duration=$((te1 - ts1))
 echo "$TIMESTAMP $PROC_NAME: archiving: completed archiving scoutsuite reports. elapsed: $(($duration / 60)) min and $(($duration % 60)) sec" >> $LOGFILE
 
 # delete
-DELETE_LIST=`find $REPORT_DIR -ctime +$LIMIT_DELETE -type f -name "$REPORT_BASE" `
+DELETE_LIST=`find $REPORT_DIR -ctime +$LIMIT_DELETE -type f -name "*$REPORT_BASE*tgz" | tr '\n' ' '`
+
+# nothing found, no action, exit
+if [ -z "$DELETE_LIST" ]; then
+    exit
+fi
+
 echo "$TIMESTAMP $PROC_NAME: archiving: begin deleting scoutsuite archived reports: $DELETE_LIST" >> $LOGFILE
-find $REPORT_DIR -ctime +$LIMIT_DELETE -type f -name "$REPORT_BASE" -delete
+echo "find $REPORT_DIR -ctime +$LIMIT_DELETE -type f -name "*$REPORT_BASE*tgz" -delete"
+find $REPORT_DIR -ctime +$LIMIT_DELETE -type f -name "*$REPORT_BASE*tgz" -delete
 CHK_FLAG=$? # return 0 if success
 
 if [ $CHK_FLAG != 0 ]; then
     echo -e "$TIMESTAMP $PROC_NAME: archiving: failed to delete all expired folders. please validate report files: $REPORT_DIR" >> $LOGFILE
 fi
+
+# delete all old logging files
+DELETE_LOG_LIST=`find $LOGDIR -ctime +$LIMIT_DELETE -type d -name "$REPORT_BASE" | tr '\n' ' '`
+
+# nothing found, no action, exit
+if [ -z "$DELETE_LOG_LIST" ]; then
+    exit
+fi
+
+echo "$TIMESTAMP $PROC_NAME: archiving: begin deleting scoutsuite collector logs: $DELETE_LOG_LIST" >> $LOGFILE
+echo "find $LOGDIR -ctime +$LIMIT_DELETE -type d -name "$REPORT_BASE" -delete"
+find $LOGDIR -ctime +$LIMIT_DELETE -type d -name "$REPORT_BASE" -delete
+CHK_FLAG=$? # return 0 if success
+
+if [ $CHK_FLAG != 0 ]; then
+    echo -e "$TIMESTAMP $PROC_NAME: archiving: failed to delete all expired report log folders. please validate report log: $LOGDIR" >> $LOGFILE
+fi
+
 

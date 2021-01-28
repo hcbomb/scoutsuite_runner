@@ -52,7 +52,7 @@ ev_template = {}
 events = {}
 
 def GetLogger(logFilename, loggerName, logLevel=logging.DEBUG, 
-              backupCount=5, utc=True, intervalMinutes=24 * 60):
+              backupCount=5, utc=True, interval=8):
     '''
     build logger file for the script
 
@@ -62,7 +62,7 @@ def GetLogger(logFilename, loggerName, logLevel=logging.DEBUG,
         logLevel: configured log level. default DEBUG
         backupCount: number of backup log files to rotate
         utc: use UTC timezone. default true.
-        intervalMinutes: interval to rotate log files
+        interval: interval to rotate log files
 
     Returns:
         logger: logger pointer
@@ -72,8 +72,8 @@ def GetLogger(logFilename, loggerName, logLevel=logging.DEBUG,
 
     logger = logging.getLogger(loggerName)
     logger.setLevel(logLevel)
-    handler = handlers.TimedRotatingFileHandler(logFilename, when='M',
-                                                interval=intervalMinutes,
+    handler = handlers.TimedRotatingFileHandler(logFilename, when='H',
+                                                interval=interval,
                                                 backupCount=backupCount,
                                                 encoding=None, utc=utc)
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
@@ -179,7 +179,7 @@ def _process_service_events(service_name, ev_temp, results_service):
 
     # iterate through service data
     for key in results_service.keys():
-        logger.debug(f'key list dump: env: {ev_temp["environment"]} service={service_name} keys: <{",".join(results_service.keys())}>')
+        #logger.debug(f'key list dump: env: {ev_temp["environment"]} service={service_name} keys: <{",".join(results_service.keys())}>') # missing account info
         # everything not iterable will added to summary event
         if not isinstance(results_service[key], dict):
             ev_summary[key] = results_service[key]
@@ -197,6 +197,21 @@ def _process_service_events(service_name, ev_temp, results_service):
                 my_findings[vv]['id'] = f'{key}:{vv}'
                 my_findings[vv].update(ev_findings)
                 my_findings[vv].update(results_service[key][vv])
+
+        # process attack service as a finding
+        elif key == 'external_attack_surface':
+            for vv in results_service[key]:
+                my_findings[vv] = {}
+                my_findings[vv]['id'] = f'{key}:{vv}'
+                my_findings[vv].update(ev_findings)
+                my_findings[vv].update(results_service[key][vv])
+
+        # process public access block config as a finding
+        elif key == 'public_access_block_configuration':
+            my_findings[key] = {}
+            my_findings[key]['id'] = f'{key}'
+            my_findings[key].update(ev_findings)
+            my_findings[key].update(results_service[key])
 
         # need to iterate if among specified service events
         elif key in SERVICE_EV_FIELDS[service_name]:
@@ -249,7 +264,7 @@ def _process_service_events(service_name, ev_temp, results_service):
                     
         # any other special type of asset for the service
         else: # add inventory summary page for the region + per asset
-            logger.debug(f'UNKNOWN env: {ev_temp["environment"]} key: {key} type: {type(results_service[key])}')
+            logger.debug(f'UNKNOWN ASSET TYPE env: {ev_temp["environment"]} key: {key} type: {type(results_service[key])}')
             '''
             my_inventory[vv] = {}
             my_inventory[vv]['sub_type'] = key
@@ -339,7 +354,8 @@ if __name__ == "__main__":
             ev_template[bkey] = base_details[bkey]
 
     # service list is general and has no detail from aws account
-    del(account_details['service_list'])
+    if account_details.get('service_list'):
+        del(account_details['service_list'])
 
     # ['last_run', 'metadata', 'service_groups', 'services', 'sg_map', 'subnet_map']
     for key in account_details.keys():
